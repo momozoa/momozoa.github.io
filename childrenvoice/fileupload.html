@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <!-- 필수 메타 태그 -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- Noto Sans KR 웹폰트 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet" />
+
+    <!-- 부트스트랩 CSS 링크 (v5.3) -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+
+    <title>앱 이름 - 모바일 랜딩 페이지</title>
+
+    <!-- 사용자 정의 스타일 분리: custom.css -->
+    <link rel="stylesheet" href="custom.css" />
+  </head>
+  <body>
+
+    <section id="blog-list" class="py-5 bg-white">
+      <div class="container">
+        <h2 class="text-center section-title">최신 게시물</h2>
+        <div class="row g-3">
+          <div class="col-6 col-md-6">
+            <img src="https://placehold.co/250x250/007bff/white?text=Image+1" class="img-fluid rounded shadow-sm w-100 stackview-trigger" alt="최신 이미지 1" />
+          </div>
+          <div class="col-6 col-md-6">
+            <img src="https://placehold.co/250x250/28a745/white?text=Image+2" class="img-fluid rounded shadow-sm w-100 stackview-trigger" alt="최신 이미지 2" />
+          </div>
+          <div class="col-6 col-md-6">
+            <img src="https://placehold.co/250x250/ffc107/white?text=Image+3" class="img-fluid rounded shadow-sm w-100 stackview-trigger" alt="최신 이미지 3" />
+          </div>
+          <div class="col-6 col-md-6">
+            <img src="https://placehold.co/250x250/17a2b8/white?text=Image+4" class="img-fluid rounded shadow-sm w-100 stackview-trigger" alt="최신 이미지 4" />
+          </div>
+          <div class="col-6 col-md-6">
+            <img src="https://placehold.co/250x250/e83e8c/white?text=Image+5" class="img-fluid rounded shadow-sm w-100 stackview-trigger" alt="최신 이미지 5" />
+          </div>
+          <div class="col-6 col-md-6">
+            <img src="https://placehold.co/250x250/6f42c1/white?text=Image+6" class="img-fluid rounded shadow-sm w-100 stackview-trigger" alt="최신 이미지 6" />
+          </div>
+          <div class="col-6 col-md-6">
+            <img src="https://placehold.co/250x250/20c997/white?text=Image+7" class="img-fluid rounded shadow-sm w-100 stackview-trigger" alt="최신 이미지 7" />
+          </div>
+          <div class="col-6 col-md-6">
+            <img src="https://placehold.co/250x250/fd7e14/white?text=Image+8" class="img-fluid rounded shadow-sm w-100 stackview-trigger" alt="최신 이미지 8" />
+          </div>
+          <div class="col-6 col-md-6">
+            <img src="https://placehold.co/250x250/343a40/white?text=Image+9" class="img-fluid rounded shadow-sm w-100 stackview-trigger" alt="최신 이미지 9" />
+          </div>
+          <div class="col-6 col-md-6">
+            <img src="https://placehold.co/250x250/6610f2/white?text=Image+10" class="img-fluid rounded shadow-sm w-100 stackview-trigger" alt="최신 이미지 10" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 이미지 내용 상세보기 스택뷰 레이어 (처음엔 숨김) -->
+    <div id="stackview-detail" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1999;background:rgba(255,255,255,0.98);box-shadow:0 0 32px rgba(0,0,0,0.12);transition:transform 0.3s cubic-bezier(.4,0,.2,1);transform:translateY(100vh);pointer-events:auto;">
+      <!-- 상단 고정 헤더 -->
+      <div style="position:fixed;top:0;left:0;width:100vw;height:60px;background:#fff;border-bottom:1px solid #e5e5e5;z-index:1;">
+        <div class="container pt-3 position-relative mb-0" style="height:60px;">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);display:inline-block;cursor:pointer;font-size:1.3rem;color:#555;" id="stackview-detail-back">
+            <i class="bi bi-chevron-left"></i>
+          </span>
+          <div class="text-center fs-5 fw-bold">아이 맞이</div>
+        </div>
+      </div>
+      <!-- 가운데 스크롤 영역 -->
+      <div style="position:absolute;top:60px;bottom:60px;left:0;width:100vw;overflow-y:auto;">
+        <div class="container">
+          <h2 class="section-title mb-2">상황설명</h2>
+          <p>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+          </p>
+          <h2 class="section-title mb-2">주의사항</h2>
+          <p>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)<br>
+            내용이 들어갑니다. 파일 이름을 정확하게 변경해주세요 :)
+
+          </p>
+        </div>
+      </div>
+      <!-- 하단 고정 버튼 -->
+      <div style="position:fixed;bottom:0;left:0;width:100vw;height:60px;background:#fff;border-top:1px solid #e5e5e5;z-index:2;">
+        <button type="button" class="btn btn-primary w-100 h-100 rounded-0" id="stackview-detail-next" style="font-size:1.2rem;">다음</button>
+      </div>
+    </div>
+
+    <!-- 파일 업로드 스택뷰 레이어 (처음엔 숨김) -->
+    <div id="stackview-upload" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2000;background:rgba(255,255,255,0.98);box-shadow:0 0 32px rgba(0,0,0,0.12);overflow:auto;transition:transform 0.3s cubic-bezier(.4,0,.2,1);transform:translateY(100vh);pointer-events:auto;">
+      <div class="container pt-3 position-relative mb-3" style="height:60px;border-bottom:1px solid #e5e5e5;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);display:inline-block;cursor:pointer;font-size:1.3rem;color:#555;" id="stackview-back">
+          <i class="bi bi-chevron-left"></i>
+        </span>
+        <div class="text-center fs-5 fw-bold">아이 맞이 제목 길게</div>
+      </div>
+      <section class="pt-2">
+        <div class="container">
+          <h2 class="section-title mb-2">아이 맞이</h2>
+          <p class="text-primary fs-5 fw-bold mb-2">음성파일을 업로드 해주세요!</p>
+          <p>
+            파일 이름을 정확하게 변경해주세요 :)<br>
+            <b>파일명: 부모명_아이이름_연령_성별_아침시간</b>
+          </p>
+          <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6">
+              <div class="card p-4 rounded-3 shadow-sm">
+                <form>
+                  <div class="mb-4 text-center">
+                    <label for="formFile" class="form-label d-block mb-2">업로드할 파일 (최대 10MB)</label>
+                    <input type="file" id="formFile" style="display:none;" />
+                    <div id="fileAddImg" style="display:inline-block;width:100%;height:auto;cursor:pointer;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.12));background:#f8f9fa;border-radius:16px;text-align:center;">
+                      <i class="bi bi-file-earmark-plus" style="font-size:2.5rem;color:#1e40af;vertical-align:middle;"></i>
+                      <div class="m-2" style="font-size:1rem;vertical-align:middle;margin-left:8px;">파일 추가</div>
+                    </div>
+                    <div id="fileName" class="mt-2 text-muted small"></div>
+                  </div>
+                  <!-- 진행률 표시줄 (JavaScript로 동적으로 업데이트) -->
+                  <div class="mb-4">
+                    <p class="small text-muted mb-1">업로드 진행률:</p>
+                    <div class="progress" role="progressbar" aria-label="Upload Progress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                      <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%">0%</div>
+                    </div>
+                  </div>
+                  <div class="d-grid">
+                    <button type="button" onclick="handleUpload()" class="btn" style="background-color:#1e40af;border-color:#1e40af;color:#fff;">
+                      <i class="bi bi-upload me-2"></i> 업로드 시작
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 부트스트랩 아이콘 및 JS -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- ...PWA 설치 안내 팝업 및 beforeinstallprompt 관련 코드 제거됨... -->
+    <script>
+      // 스택뷰 레이어 동작 (상세보기, 파일업로드)
+      const stackviewDetail = document.getElementById('stackview-detail');
+      const stackviewDetailBack = document.getElementById('stackview-detail-back');
+      const stackviewDetailNext = document.getElementById('stackview-detail-next');
+      const stackviewUpload = document.getElementById('stackview-upload');
+      const stackviewUploadBack = document.querySelector('#stackview-upload #stackview-back');
+      const stackviewTriggers = document.querySelectorAll('.stackview-trigger');
+
+      // 상세보기 오버레이 열기
+      function openStackviewDetail() {
+        stackviewDetail.style.display = 'block';
+        stackviewDetail.style.pointerEvents = 'auto';
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => {
+          stackviewDetail.style.transform = 'translateY(0)';
+        }, 10);
+        history.pushState({stackview:'detail'}, '', location.href);
+      }
+      // 상세보기 오버레이 닫기
+      function closeStackviewDetail() {
+        stackviewDetail.style.transform = 'translateY(100vh)';
+        setTimeout(() => {
+          stackviewDetail.style.display = 'none';
+          document.body.style.overflow = '';
+        }, 300);
+      }
+      // 파일업로드 오버레이 열기
+      function openStackviewUpload() {
+        stackviewUpload.style.display = 'block';
+        stackviewUpload.style.pointerEvents = 'auto';
+        stackviewDetail.style.pointerEvents = 'none';
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => {
+          stackviewUpload.style.transform = 'translateY(0)';
+        }, 10);
+        history.pushState({stackview:'upload'}, '', location.href);
+      }
+      // 파일업로드 오버레이 닫기
+      function closeStackviewUpload() {
+        stackviewUpload.style.transform = 'translateY(100vh)';
+        setTimeout(() => {
+          stackviewUpload.style.display = 'none';
+          stackviewDetail.style.pointerEvents = 'auto';
+          document.body.style.overflow = 'hidden';
+        }, 300);
+      }
+      // 이미지 클릭 시 상세보기 오버레이 열기
+      stackviewTriggers.forEach(img => {
+        img.addEventListener('click', openStackviewDetail);
+      });
+      // 상세보기 뒤로가기
+      stackviewDetailBack.addEventListener('click', () => {
+        closeStackviewDetail();
+        if (history.state && history.state.stackview === 'detail') {
+          history.back();
+        }
+      });
+      // 상세보기 '다음' 버튼 클릭 시 파일업로드 오버레이 열기
+      stackviewDetailNext.addEventListener('click', () => {
+        // 상세보기 레이어는 닫지 않고, 파일업로드 레이어만 추가로 띄움
+        openStackviewUpload();
+      });
+      // 파일업로드 뒤로가기
+      stackviewUploadBack.addEventListener('click', () => {
+        closeStackviewUpload();
+        if (history.state && history.state.stackview === 'upload') {
+          history.back();
+        }
+      });
+      // 뒤로가기(popstate) 이벤트에서 오버레이 닫기
+      window.addEventListener('popstate', function(e) {
+        if (stackviewUpload.style.display === 'block') {
+          closeStackviewUpload();
+        } else if (stackviewDetail.style.display === 'block') {
+          closeStackviewDetail();
+        } else {
+          document.body.style.overflow = '';
+        }
+      });
+
+      // 파일 추가 이미지 클릭 시 파일 선택창 열기
+      const fileAddImg = document.getElementById('fileAddImg');
+      const fileInput = document.getElementById('formFile');
+      const fileName = document.getElementById('fileName');
+      fileAddImg.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+          fileName.textContent = fileInput.files[0].name;
+        } else {
+          fileName.textContent = '';
+        }
+      });
+
+      function handleUpload() {
+        const progressBar = document.getElementById("uploadProgressBar");
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 10;
+          if (progress > 100) {
+            clearInterval(interval);
+            progressBar.style.width = "100%";
+            progressBar.textContent = "업로드 완료!";
+            setTimeout(() => {
+              alert("파일 업로드가 완료되었습니다!");
+            }, 500);
+          } else {
+            progressBar.style.width = progress + "%";
+            progressBar.textContent = progress + "%";
+          }
+        }, 200);
+      }
+      const sections = document.querySelectorAll("section");
+      const navLinks = document.querySelectorAll(".fixed-bottom .nav-link");
+      window.addEventListener("scroll", () => {
+        let current = "";
+        sections.forEach((section) => {
+          const sectionTop = section.offsetTop;
+          const sectionHeight = section.clientHeight;
+          if (scrollY >= sectionTop - sectionHeight / 3) {
+            current = section.getAttribute("id");
+          }
+        });
+        navLinks.forEach((link) => {
+          link.classList.remove("active", "text-warning");
+          link.classList.add("text-white");
+          if (link.getAttribute("href").includes(current)) {
+            link.classList.add("active", "text-warning");
+            link.classList.remove("text-white");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

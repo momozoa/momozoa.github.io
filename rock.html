@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+    }   
+  </style>
+</head>
+<body>
+  <div id="youtube">
+    <iframe id="player" width="560" height="315" src="https://www.youtube.com/embed/10RnelTNSx8?si=2JW4l0JDygPnD9w9&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+  </div>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>
+    // 윈도우 사이즈 조절 될 때마다 iframe 사이즈 조절 화면 꽉차게
+    window.addEventListener('resize', function() {
+      winResize();
+    });
+
+    // 처음 로딩시 화면 꽉차게
+    $(document).ready(function() {
+      winResize();
+    });
+
+    ///////////////////////////////////
+    // 화면 사이즈 변경
+    ///////////////////////////////////
+    function winResize() {
+      var win = $(window);
+      var winWidth = win.width();
+      var winHeight = win.height();
+      var newWidth = 0;
+      var newHeight = 0;
+
+      if (winHeight > winWidth * 0.5625) {
+          $("#player").height(winHeight);
+          newWidth = winHeight * 1.78;
+          $("#player").width(newWidth);
+          $("#player").css("margin-left",(winWidth - newWidth) / 2);
+          $("#player").css("margin-top",0);
+      }
+      else {
+          $("#player").width(winWidth);
+          newHeight = winWidth * 56.25 / 100;
+          $("#player").height(newHeight);
+          $("#player").css("margin-left",0);
+          $("#player").css("margin-top",(winHeight - newHeight) / 2);
+      }
+    }
+  </script>
+</body>
+</html>

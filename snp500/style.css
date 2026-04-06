@@ -1,0 +1,63 @@
+/* Tailwind CSS 보완을 위한 사용자 정의 스타일 */
+
+/* 카드 형태 스타일링: 폼과 결과 영역을 카드처럼 보이게 */
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* 그래프 캔버스 스타일링: 반응형 높이와 너비 */
+canvas {
+    max-width: 100%;
+    height: 400px;
+    border-radius: 8px;
+}
+
+/* 상세 리포트 섹션: 테이블 형태로 스타일링 */
+#report {
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+#report.show {
+    opacity: 1;
+}
+
+.report-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.report-item:last-child {
+    border-bottom: none;
+}
+
+.report-label {
+    font-weight: 500;
+}
+
+.report-value {
+    font-weight: bold;
+    color: #1f2937;
+}
+
+/* 최종 자산 강조 */
+#finalAsset1, #finalAsset2 {
+    color: #059669;
+    font-size: 1.25rem;
+}
+
+/* 반응형 디자인 보완 */
+@media (max-width: 768px) {
+    .card {
+        padding: 1rem;
+    }
+    canvas {
+        height: 300px;
+    }
+}

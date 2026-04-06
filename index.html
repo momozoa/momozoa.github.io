@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="transparent" />
+  <title>Popup App</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* 윈도우 컨트롤과 겹치지 않도록 안전영역 사용 */
+    body {
+      margin: 0;
+      background: #f2f2f7;
+      /* iOS Light Gray */
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    header {
+      padding-top: env(titlebar-area-height, 40px);
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #000;
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    main {
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 2rem 1.5rem;
+      justify-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .app-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      border: none;
+      background: none;
+      padding: 0;
+      transition: transform 0.2s ease;
+    }
+
+    .app-item:hover {
+      transform: scale(1.05);
+    }
+
+    .app-item:active {
+      transform: scale(0.95);
+      opacity: 0.7;
+    }
+
+    .app-icon {
+      width: 80px;
+      height: 80px;
+      background: #fff;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .app-name {
+      font-size: 0.8rem;
+      color: #333;
+      font-weight: 500;
+      text-align: center;
+      max-width: 90px;
+      line-height: 1.2;
+    }
+  </style>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+
+    function openPopup(page, w, h) {
+      const left = window.screenX + (window.outerWidth - w) / 2;
+      const top = window.screenY + (window.outerHeight - h) / 2;
+      window.open(
+        page,
+        '_blank',
+        `width=${w},height=${h},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no`
+      );
+    }
+  </script>
+</head>
+
+<body>
+  <header>
+    <h1>Momozoa Apps</h1>
+  </header>
+  <main>
+    <button class="app-item" onclick="openPopup('rock.html', 1600, 900)">
+      <div class="app-icon">🎸</div>
+      <span class="app-name">Rock</span>
+    </button>
+    <button class="app-item" onclick="openPopup('music.html', 1600, 900)">
+      <div class="app-icon">🎵</div>
+      <span class="app-name">Music</span>
+    </button>
+    <button class="app-item" onclick="openPopup('rain.html', 1600, 900)">
+      <div class="app-icon">🌧️</div>
+      <span class="app-name">Rain</span>
+    </button>
+    <button class="app-item" onclick="openPopup('travel.html', 1600, 900)">
+      <div class="app-icon">✈️</div>
+      <span class="app-name">Travel</span>
+    </button>
+    <button class="app-item" onclick="openPopup('healing.html', 1600, 900)">
+      <div class="app-icon">💆</div>
+      <span class="app-name">Healing</span>
+    </button>
+    <button class="app-item" onclick="openPopup('randomchat.html', 360, 600)">
+      <div class="app-icon">💬</div>
+      <span class="app-name">Random Chat</span>
+    </button>
+    <button class="app-item" onclick="openPopup('stt/index.html', 480, 600)">
+      <div class="app-icon">🎤</div>
+      <span class="app-name">STT</span>
+    </button>
+    <button class="app-item" onclick="openPopup('games/index.html', 600, 600)">
+      <div class="app-icon">🎮</div>
+      <span class="app-name">Games</span>
+    </button>
+    <button class="app-item" onclick="openPopup('snp500/index.html', 800, 600)">
+      <div class="app-icon">🌎</div>
+      <span class="app-name">S&P 500</span>
+    </button>
+    <button class="app-item" onclick="openPopup('bit-dashboard/index.html', 1600, 900)">
+      <div class="app-icon">📊</div>
+      <span class="app-name">BIT Dashboard</span>
+    </button>
+    <button class="app-item" onclick="openPopup('runningmate/index.html', 400, 800)">
+      <div class="app-icon">🏃</div>
+      <span class="app-name">Running Mate</span>
+    </button>
+    <button class="app-item" onclick="openPopup('musicplayer/index.html', 450, 700)">
+      <div class="app-icon">🎼</div>
+      <span class="app-name">Music Player</span>
+    </button>
+  </main>
+</body>
+
+</html>

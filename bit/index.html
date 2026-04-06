@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>LED 한글 네온 시뮬레이터</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gothic&display=swap" rel="stylesheet">
+
+<style>
+/* PfStardust30S 웹폰트 */
+@font-face {
+  font-family: 'PfStardust30S';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2506-1@1.0/PFStardustS.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* 페이지 기본 */
+body {
+  background: radial-gradient(circle at center, #000 40%, #050505 100%);
+  color: #eee;
+  font-family: sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+}
+
+/* 타이틀 */
+h2 { margin-bottom: 10px; text-shadow: 0 0 15px #0f0; }
+
+/* 입력/슬라이더/선택 */
+input[type=text], select {
+  padding: 6px 10px;
+  font-size: 18px;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+  margin-bottom: 10px;
+}
+label { display: block; margin: 10px 0; }
+
+/* LED 패널 */
+#panel {
+  display: grid;
+  grid-template-columns: repeat(96, 10px);
+  grid-template-rows: repeat(32, 10px);
+  gap: 3px;
+  justify-content: center;
+  margin-top: 20px;
+}
+  /* LED dot 스타일 */
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #222;
+    box-shadow: 0 0 4px #000;
+    transition: background 0.1s;
+    display: inline-block;
+  }
+  .dot.on {
+    background: #0f0;
+    box-shadow: 0 0 8px #0f0, 0 0 2px #fff;
+  }
+</style>
+<h2>LED 한글 네온 시뮬레이터</h2>
+
+<div style="max-width:900px;margin:0 auto;">
+  <label>윗줄 텍스트
+    <input type="text" id="text1" maxlength="20" placeholder="윗줄 텍스트 입력">
+  </label>
+  <label>아랫줄 텍스트
+    <input type="text" id="text2" maxlength="20" placeholder="아랫줄 텍스트 입력">
+  </label>
+  <label>폰트 종류
+    <select id="fontSelect">
+      <option value="Jua">Jua</option>
+      <option value="Nanum Gothic">나눔고딕</option>
+      <option value="Malgun Gothic">맑은 고딕</option>
+      <option value="Dotum">돋움</option>
+      <option value="sans-serif">기본 Sans-serif</option>
+    </select>
+  </label>
+  <label>폰트 크기
+    <input type="range" id="fontSize" min="8" max="32" value="16">
+    <span id="fontSizeValue">16</span>px
+  </label>
+  <label>
+    <input type="checkbox" id="overlayToggle" checked>
+    LED dot 오버레이 표시
+  </label>
+  <label>
+    <input type="checkbox" id="allOnToggle">
+    모든 LED 점 켜기
+  </label>
+</div>
+
+<div id="panel"></div>
+
+<script src="main.js"></script>
+</body>
+</html>

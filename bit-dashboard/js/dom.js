@@ -1,0 +1,15 @@
+export const dom = {
+  summarySection: document.getElementById('summary-section'),
+  gridView: document.getElementById('grid-view'),
+  tableView: document.getElementById('table-view'),
+  tableViewBody: document.querySelector('#table-view tbody'),
+  lastUpdated: document.getElementById('last-updated'),
+  filterButtons: document.querySelectorAll('.filter-btn'),
+  searchInput: document.getElementById('search-input'),
+  gridViewBtn: document.getElementById('grid-view-btn'),
+  tableViewBtn: document.getElementById('table-view-btn'),
+  detailsPanel: document.getElementById('details-panel'),
+  detailsContent: document.getElementById('details-content'),
+  closePanelBtn: document.getElementById('close-panel-btn'),
+  deviceListSection: document.getElementById('device-list-section'),
+};

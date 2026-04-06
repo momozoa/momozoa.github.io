@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S&P 500 인터랙티브 투자 시뮬레이터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="ad-slot-top bg-gray-200 h-16 flex items-center justify-center mb-4">광고 배너 (상단)</div>
+    
+    <h1 class="text-2xl font-bold text-center mb-6">S&P 500 인터랙티브 투자 시뮬레이터</h1>
+    
+    <div class="max-w-4xl mx-auto card mb-6">
+        <ul class="list-disc list-inside text-gray-600">
+            <li>S&P 500 지수의 연평균 10% 수익률을 기반으로 투자 시뮬레이션을 제공합니다.</li>
+            <li>두 가지 투자 시나리오를 비교하여 초기 투자금액, 월 적립금액, 투자 기간에 따른 미래 자산 가치를 예측합니다.</li>
+            <li>계산 결과는 그래프와 상세 리포트로 시각화하여 확인할 수 있습니다.</li>
+        </ul>
+    </div>
+    
+    <div class="max-w-4xl mx-auto card mb-6">
+        <div class="grid grid-cols-3 gap-4">
+            <div>
+                <label for="currentAge" class="block text-sm font-medium">현재 나이: <span id="currentAgeValue">30</span></label>
+                <input type="range" id="currentAge" min="18" max="80" step="1" value="30" class="mt-1 block w-full">
+            </div>
+            <div>
+                <label for="lifeExpectancy" class="block text-sm font-medium">생존 나이: <span id="lifeExpectancyValue">90</span></label>
+                <input type="range" id="lifeExpectancy" min="80" max="120" step="1" value="90" class="mt-1 block w-full">
+            </div>
+            <div>
+                <label for="livingExpense" class="block text-sm font-medium">은퇴 후 연간 생활비: <span id="livingExpenseValue">4000</span></label>
+                <input type="range" id="livingExpense" min="0" max="10000" step="100" value="4000" class="mt-1 block w-full">
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-4 gap-6 mb-6">
+        <div class="card col-span-1">
+            <h2 class="text-xl font-semibold mb-4">첫 번째 투자 시나리오</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label for="initial1" class="block text-sm font-medium">초기 투자금액 1: <span id="initial1Value">1000</span></label>
+                    <input type="range" id="initial1" min="0" max="10000" step="100" value="1000" class="mt-1 block w-full">
+                </div>
+                <div>
+                    <label for="monthly1" class="block text-sm font-medium">월 적립금액 1: <span id="monthly1Value">100</span></label>
+                    <input type="range" id="monthly1" min="0" max="1000" step="10" value="100" class="mt-1 block w-full">
+                </div>
+                <div>
+                    <label for="retirementAge1" class="block text-sm font-medium">은퇴 나이 1: <span id="retirementAge1Value">55</span></label>
+                    <input type="range" id="retirementAge1" min="50" max="70" step="1" value="55" class="mt-1 block w-full">
+                </div>
+            </div>
+        </div>
+        <div class="card col-span-2">
+            <h2 class="text-xl font-semibold mb-4">연도별 자산 성장 그래프 (시나리오 1)</h2>
+            <canvas id="chart1"></canvas>
+        </div>
+        <div class="card col-span-1" id="report1">
+            <h3 class="text-lg font-medium mb-2">시나리오 1 요약</h3>
+            <div class="report-item"><span class="report-label">최종 예상 자산:</span> <span class="report-value" id="finalAsset1"></span></div>
+            <div class="report-item"><span class="report-label">총 투자 원금:</span> <span class="report-value" id="totalInvested1"></span></div>
+            <div class="report-item"><span class="report-label">총 수익금:</span> <span class="report-value" id="totalProfit1"></span></div>
+            <div class="report-item"><span class="report-label">총 생활비 인출금:</span> <span class="report-value" id="totalWithdrawn1"></span></div>
+            <div class="report-item"><span class="report-label">수익률:</span> <span class="report-value" id="roi1"></span></div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-4 gap-6 mb-6">
+        <div class="card col-span-1">
+            <h2 class="text-xl font-semibold mb-4">두 번째 투자 시나리오</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label for="initial2" class="block text-sm font-medium">초기 투자금액 2: <span id="initial2Value">1000</span></label>
+                    <input type="range" id="initial2" min="0" max="10000" step="100" value="1000" class="mt-1 block w-full">
+                </div>
+                <div>
+                    <label for="monthly2" class="block text-sm font-medium">월 적립금액 2: <span id="monthly2Value">100</span></label>
+                    <input type="range" id="monthly2" min="0" max="1000" step="10" value="100" class="mt-1 block w-full">
+                </div>
+                <div>
+                    <label for="retirementAge2" class="block text-sm font-medium">은퇴 나이 2: <span id="retirementAge2Value">55</span></label>
+                    <input type="range" id="retirementAge2" min="50" max="70" step="1" value="55" class="mt-1 block w-full">
+                </div>
+            </div>
+        </div>
+        <div class="card col-span-2">
+            <h2 class="text-xl font-semibold mb-4">연도별 자산 성장 그래프 (시나리오 2)</h2>
+            <canvas id="chart2"></canvas>
+        </div>
+        <div class="card col-span-1" id="report2">
+            <h3 class="text-lg font-medium mb-2">시나리오 2 요약</h3>
+            <div class="report-item"><span class="report-label">최종 예상 자산:</span> <span class="report-value" id="finalAsset2"></span></div>
+            <div class="report-item"><span class="report-label">총 투자 원금:</span> <span class="report-value" id="totalInvested2"></span></div>
+            <div class="report-item"><span class="report-label">총 수익금:</span> <span class="report-value" id="totalProfit2"></span></div>
+            <div class="report-item"><span class="report-label">총 생활비 인출금:</span> <span class="report-value" id="totalWithdrawn2"></span></div>
+            <div class="report-item"><span class="report-label">수익률:</span> <span class="report-value" id="roi2"></span></div>
+        </div>
+    </div>
+    
+    <div class="max-w-4xl mx-auto mb-6">
+        
+    </div>
+    
+    <div class="ad-slot-bottom bg-gray-200 h-16 flex items-center justify-center mt-6">광고 배너 (하단)</div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

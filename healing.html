@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  <script type="module" crossorigin src="js/panorama-slider.js"></script>
+  <link rel="stylesheet" crossorigin href="css/panorama-slider.css">
+  </head>
+ <style>
+  body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .panorama-slider {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    transition: opacity 0.3s;
+    opacity: 1;
+    visibility: visible;
+  }
+  .panorama-slider.hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .menu-btn {
+    position: fixed;
+    top: 24px;
+    right: 32px;
+    z-index: 20;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: background 0.2s;
+  }
+  .menu-btn:hover {
+    background: rgba(0,0,0,0.9);
+  }
+
+ </style>
+  <body>
+  <button class="menu-btn" id="openSliderBtn" title="슬라이더 열기" aria-label="슬라이더 열기">☰</button>
+  <button class="menu-btn" id="closeSliderBtn" title="슬라이더 닫기" aria-label="슬라이더 닫기" style="display:none;top:24px;right:32px;left:auto;background:#222;">✕</button>
+    <div id="yt-bg" class="player" data-property="{videoURL:'https://youtu.be/nzn3X9iEdTs',containment:'body',autoPlay:true,mute:false,startAt:30,showControls:false,ratio:'16/9',quality:'hd1080'}"></div>
+    <!-- jquery.mb.YTPlayer 라이브러리 추가 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.mb.YTPlayer/3.3.9/css/jquery.mb.YTPlayer.min.css" />
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mb.YTPlayer/3.3.9/jquery.mb.YTPlayer.min.js"></script>
+  <div class="panorama-slider hide" id="panoramaSlider" tabindex="-1" aria-modal="true" role="dialog">
+      <div class="swiper">
+        <div class="swiper-wrapper">
+          <div class="swiper-slide" data-yt="nzn3X9iEdTs">
+            <img class="slide-image" src="https://img.youtube.com/vi/nzn3X9iEdTs/hqdefault.jpg" alt="비멍 (호수/물가)" />
+          </div>
+          <div class="swiper-slide" data-yt="HalkR30y2x8">
+            <img class="slide-image" src="https://img.youtube.com/vi/HalkR30y2x8/hqdefault.jpg" alt="비멍 (비 내리는 창문)" />
+          </div>
+          <div class="swiper-slide" data-yt="zBXOZ_SvUqA">
+            <img class="slide-image" src="https://img.youtube.com/vi/zBXOZ_SvUqA/hqdefault.jpg" alt="불멍 (화로대/모닥불)" />
+          </div>
+          <div class="swiper-slide" data-yt="MOwwExzrVyQ">
+            <img class="slide-image" src="https://img.youtube.com/vi/MOwwExzrVyQ/hqdefault.jpg" alt="눈멍 (눈 내리는 풍경)" />
+          </div>
+          <div class="swiper-slide" data-yt="VuZYY2etJmw">
+            <img class="slide-image" src="https://img.youtube.com/vi/VuZYY2etJmw/hqdefault.jpg" alt="걷기멍 (산책길/숲길)" />
+          </div>
+          <div class="swiper-slide" data-yt="9Y7nTDKoe_I">
+            <img class="slide-image" src="https://img.youtube.com/vi/9Y7nTDKoe_I/hqdefault.jpg" alt="밤멍 (밤하늘/별)" />
+          </div>
+          <div class="swiper-slide" data-yt="dC2HWoJajfY">
+            <img class="slide-image" src="https://img.youtube.com/vi/dC2HWoJajfY/hqdefault.jpg" alt="물멍 (아쿠아리움/물고기)" />
+          </div>
+          <div class="swiper-slide" data-yt="B5unCXpegAw">
+            <img class="slide-image" src="https://img.youtube.com/vi/B5unCXpegAw/hqdefault.jpg" alt="우주멍 (우주/은하수)" />
+          </div>
+          <div class="swiper-slide" data-yt="TotzUozx610">
+            <img class="slide-image" src="https://img.youtube.com/vi/TotzUozx610/hqdefault.jpg" alt="오로라멍 (밤하늘/오로라)" />
+          </div>
+          <div class="swiper-slide" data-yt="D1lNjuUj2c8">
+            <img class="slide-image" src="https://img.youtube.com/vi/D1lNjuUj2c8/hqdefault.jpg" alt="바다멍 (동해/파도)" />
+          </div>
+        </div>
+        <div class="swiper-pagination"></div>
+      </div>
+    </div>
+  <script>
+    // panorama-slider.uiinitiative.com과 완전히 동일하게 동작하도록 최적화
+    $(function(){
+      const openBtn = $('#openSliderBtn');
+      const closeBtn = $('#closeSliderBtn');
+      const slider = $('#panoramaSlider');
+      const ytBg = $('#yt-bg');
+      ytBg.YTPlayer();
+
+      // 슬라이더 열기/닫기
+      function openSlider() {
+        slider.removeClass('hide');
+        openBtn.hide();
+        closeBtn.show();
+        setTimeout(()=>slider.focus(), 10);
+      }
+      function closeSlider() {
+        slider.addClass('hide');
+        openBtn.show();
+        closeBtn.hide();
+        openBtn.focus();
+      }
+      openBtn.on('click', openSlider);
+      closeBtn.on('click', closeSlider);
+      // ESC로 닫기
+      $(document).on('keydown', function(e){
+        if (!slider.hasClass('hide') && (e.key === 'Escape' || e.keyCode === 27)) closeSlider();
+      });
+
+      // Swiper 인스턴스 준비 후에만 이벤트 연결
+      const swiperEl = slider.find('.swiper')[0];
+      let swiperInstance = null;
+      function getSwiperInstance() {
+        return swiperEl && swiperEl.swiper ? swiperEl.swiper : null;
+      }
+      function onWheel(e) {
+        if (!swiperInstance || slider.hasClass('hide')) return;
+        e.preventDefault();
+        if (e.originalEvent.deltaY > 0) {
+          swiperInstance.slideNext();
+        } else if (e.originalEvent.deltaY < 0) {
+          swiperInstance.slidePrev();
+        }
+      }
+      function setYoutubeBgByActiveSlide() {
+        if (!swiperInstance) return;
+        setTimeout(function() {
+          const activeSlide = $(swiperEl).find('.swiper-slide-active');
+          if (!activeSlide.length) return;
+          const ytId = activeSlide.attr('data-yt');
+          if (!ytId) return;
+          if (window._currentYtId === ytId) return;
+          window._currentYtId = ytId;
+          ytBg.YTPChangeMovie({
+            videoURL: `https://youtu.be/${ytId}`
+          });
+        }, swiperInstance.params.speed || 300);
+      }
+      function attachSwiperEvents() {
+        if (!swiperInstance) return;
+        $(swiperEl).off('wheel').on('wheel', onWheel);
+        swiperInstance.off('slideChange').on('slideChange', setYoutubeBgByActiveSlide);
+        setYoutubeBgByActiveSlide();
+      }
+      function waitForSwiperReady() {
+        swiperInstance = getSwiperInstance();
+        if (swiperInstance) {
+          attachSwiperEvents();
+        } else {
+          setTimeout(waitForSwiperReady, 200);
+        }
+      }
+      waitForSwiperReady();
+    });
+  </script>
+  </body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STT</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="stt-container">
+    <div id="statusBar" class="status-bar">
+      <span id="statusDot" class="dot idle"></span>
+      <span id="statusText">대기중</span>
+    </div>
+    <div id="eventLog" class="event-log"></div>
+    <div id="unsupported" class="unsupported" style="display:none;">
+      이 브라우저에서는 음성 인식을 지원하지 않습니다. Android의 Chrome에서 이용해 주세요.
+    </div>
+    <div id="sttLog" class="stt-log"></div>
+
+    <canvas id="sttCanvas" width="400" height="120"></canvas>
+    <div class="level"><div id="levelBar"></div></div>
+    <div id="sttText" class="stt-text"></div>
+
+    <div class="stt-footer">
+      <select id="micSelect"></select>
+      <div class="stt-controls">
+        <button id="startBtn" class="stt-btn">
+          <span class="icon">🎤</span> 녹음 시작
+        </button>
+        <button id="stopBtn" class="stt-btn stt-stop" disabled>
+          <span class="icon">■</span> 중지
+        </button>
+      </div>
+    </div>
+  </div>
+  <script src="stt.js"></script>
+</body>
+</html>
