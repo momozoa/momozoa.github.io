@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>네온 사다리 게임 | Neon Ladder Game</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Canvas for Confetti -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="neon-icon">⚡</span>
+        <h1 class="neon-title" id="main-title">NEON LADDER</h1>
+      </div>
+      <p class="subtitle">짜릿하고 화려한 실시간 사다리 타기</p>
+    </header>
+
+    <main class="app-main">
+      <!-- 1단계: 설정 컨테이너 -->
+      <section id="setup-container" class="glass-card">
+        <div class="card-header">
+          <h2>사다리 설정</h2>
+          <p>인원수와 프리셋을 선택하고 이름과 결과를 입력하세요.</p>
+        </div>
+
+        <div class="settings-row">
+          <!-- 인원수 조절 -->
+          <div class="control-group">
+            <label for="player-count-input">참가 인원</label>
+            <div class="number-stepper">
+              <button type="button" id="btn-decrease" class="stepper-btn" aria-label="인원 감소">-</button>
+              <input type="number" id="player-count-input" value="4" min="2" max="10" readonly>
+              <button type="button" id="btn-increase" class="stepper-btn" aria-label="인원 증가">+</button>
+            </div>
+          </div>
+
+          <!-- 프리셋 선택 -->
+          <div class="control-group">
+            <label>빠른 프리셋</label>
+            <div class="preset-buttons">
+              <button type="button" class="preset-btn active" data-preset="lunch" id="preset-lunch">점심 내기</button>
+              <button type="button" class="preset-btn" data-preset="order" id="preset-order">순서 정하기</button>
+              <button type="button" class="preset-btn" data-preset="draw" id="preset-draw">당첨 / 꽝</button>
+              <button type="button" class="preset-btn" data-preset="custom" id="preset-custom">직접 입력</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 동적 입력 리스트 -->
+        <div class="inputs-table-wrapper">
+          <div class="inputs-table-header">
+            <div>이름 (출발)</div>
+            <div>결과 (도착)</div>
+          </div>
+          <div id="dynamic-inputs-container" class="inputs-list">
+            <!-- JS에서 동적으로 채워짐 -->
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button type="button" id="btn-generate" class="glow-btn">
+            <span>사다리 생성하기</span>
+            <div class="btn-glow"></div>
+          </button>
+        </div>
+      </section>
+
+      <!-- 2단계: 게임 콘솔 및 스테이지 -->
+      <section id="game-stage-container" class="glass-card hidden">
+        <div class="stage-header">
+          <button type="button" id="btn-back" class="text-btn">← 설정으로 돌아가기</button>
+          <div class="stage-info">
+            <span id="completed-count">0</span> / <span id="total-count">4</span> 완료됨
+          </div>
+        </div>
+
+        <!-- 사다리 렌더링 영역 (SVG) -->
+        <div class="ladder-viewport">
+          <div class="labels-row top-labels" id="top-labels-container">
+            <!-- 출발 이름 라벨 목록 -->
+          </div>
+
+          <div class="svg-container">
+            <svg id="ladder-svg" xmlns="http://www.w3.org/2000/svg">
+              <!-- JS에서 동적으로 사다리 선 및 가로선 생성 -->
+            </svg>
+          </div>
+
+          <div class="labels-row bottom-labels" id="bottom-labels-container">
+            <!-- 도착 결과 라벨 목록 -->
+          </div>
+        </div>
+
+        <!-- 컨트롤 바 -->
+        <div class="control-bar">
+          <div class="control-subgroup">
+            <button type="button" id="btn-play-all" class="control-btn primary-glow">
+              <span class="btn-icon">▶</span> 전체 시작
+            </button>
+            <button type="button" id="btn-reset" class="control-btn secondary">
+              <span class="btn-icon">↺</span> 초기화
+            </button>
+          </div>
+
+          <div class="control-subgroup">
+            <div class="speed-control">
+              <span class="control-label">속도:</span>
+              <div class="segmented-control">
+                <button type="button" class="segment-btn" data-speed="slow">느림</button>
+                <button type="button" class="segment-btn active" data-speed="normal">보통</button>
+                <button type="button" class="segment-btn" data-speed="fast">빠름</button>
+              </div>
+            </div>
+
+            <button type="button" id="btn-sound-toggle" class="sound-toggle-btn active" aria-label="음소거 토글">
+              <span class="sound-icon">🔊</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 결과 모달 -->
+    <div id="results-modal" class="modal-overlay hidden">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h2 class="neon-pulse-text">🎉 최종 게임 결과</h2>
+          <p>사다리 타기 결과 매칭 표입니다.</p>
+        </div>
+        <div class="modal-body">
+          <div class="results-list" id="results-list-container">
+            <!-- 매칭 결과 목록 -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btn-modal-close" class="glow-btn">
+            <span>닫기</span>
+          </button>
+          <button type="button" id="btn-restart" class="control-btn primary-glow">
+            <span>다시 하기</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>
