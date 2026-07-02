@@ -1,0 +1,1294 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서울시 대중교통 하이브리드 관제 시스템</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js (상세 차트용) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet CSS & JS (GIS 지도 구현용) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #020617; /* Slate 950 */
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* 어두운 관제 센터 전용 지도 스타일 필터 */
+        .dark-map {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col overflow-hidden">
+
+    <!-- 탑 헤더 -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-sky-500"></span>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    <i data-lucide="activity" class="w-5 h-5 text-sky-400"></i>
+                    SEOUL-FLOW : 서울시 대중교통 하이브리드 모니터링
+                </h1>
+                <p class="text-xs text-slate-400 mt-0.5">서울시 25개 자치구 32개 핵심 교통망 실시간 트래픽 분석 센터</p>
+            </div>
+        </div>
+
+        <!-- 퀵 스태츠 요약 패널 (에러 원인이었던 누락된 마크업 복원) -->
+        <div class="hidden xl:flex items-center gap-6">
+            <div class="bg-slate-950/60 px-4 py-2 rounded-lg border border-slate-800/80 flex items-center gap-3">
+                <div class="p-2 bg-emerald-500/10 rounded text-emerald-400">
+                    <i data-lucide="smile" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 font-medium uppercase">원활 자치구</div>
+                    <div class="text-sm font-semibold text-emerald-400" id="stat-normal">-- / --</div>
+                </div>
+            </div>
+            <div class="bg-slate-950/60 px-4 py-2 rounded-lg border border-slate-800/80 flex items-center gap-3">
+                <div class="p-2 bg-amber-500/10 rounded text-amber-400">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 font-medium uppercase">주의/지연 구역</div>
+                    <div class="text-sm font-semibold text-amber-400" id="stat-delay">-- 개소</div>
+                </div>
+            </div>
+            <div class="bg-slate-950/60 px-4 py-2 rounded-lg border border-slate-800/80 flex items-center gap-3">
+                <div class="p-2 bg-rose-500/10 rounded text-rose-400">
+                    <i data-lucide="flame" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 font-medium uppercase">극심 혼잡 구역</div>
+                    <div class="text-sm font-semibold text-rose-400" id="stat-critical">-- 개소</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 뷰 모드 스위칭 탭 -->
+        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button onclick="switchViewMode('treemap')" id="tab-treemap" class="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition bg-slate-800 text-sky-400 shadow">
+                <i data-lucide="grid" class="w-3.5 h-3.5"></i>
+                트리맵 뷰 (지표 위주)
+            </button>
+            <button onclick="switchViewMode('gis')" id="tab-gis" class="flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition text-slate-400 hover:text-slate-200">
+                <i data-lucide="map" class="w-3.5 h-3.5"></i>
+                GIS 지도 뷰 (공간 맥락)
+            </button>
+        </div>
+
+        <!-- 실시간 타이머 및 모드 전환 -->
+        <div class="flex items-center gap-4">
+            <div class="text-right">
+                <div class="text-xs text-slate-400" id="current-date">2026. 06. 12 (금)</div>
+                <div class="text-lg font-mono font-bold text-sky-400" id="current-time">15:47:00</div>
+            </div>
+            <button onclick="toggleControlModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-700 transition">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 구조 -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- 왼쪽: 사이드바 필터 및 제어 패널 -->
+        <section class="w-full lg:w-80 bg-slate-900 border-r border-slate-800 p-4 flex flex-col gap-4 shrink-0 overflow-y-auto lg:h-full">
+            
+            <!-- 통합 검색 -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">자치구 및 허브역 검색</label>
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="예: 강남구, 신도림, 여의도..." 
+                           class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 pl-9 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-3"></i>
+                </div>
+            </div>
+
+            <!-- 데이터 가중치 기준 선택 (트리맵 크기 기준) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">블록 면적 및 마커 가중치</label>
+                <div class="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                    <button onclick="changeWeightBasis('volume')" id="btn-weight-volume" 
+                            class="px-2 py-1.5 text-xs font-semibold rounded transition bg-slate-800 text-sky-400 shadow">
+                        일일 탑승객 수
+                    </button>
+                    <button onclick="changeWeightBasis('congestion')" id="btn-weight-congestion" 
+                            class="px-2 py-1.5 text-xs font-medium rounded transition text-slate-400 hover:text-slate-200">
+                        실시간 혼잡 지수
+                    </button>
+                </div>
+            </div>
+
+            <!-- 교통 수단 필터 -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">교통 수단 필터</label>
+                <div class="flex flex-col gap-1">
+                    <label class="flex items-center gap-2.5 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 rounded-lg border border-slate-800/50 cursor-pointer transition">
+                        <input type="checkbox" id="filter-subway" checked class="rounded border-slate-800 text-sky-500 focus:ring-sky-500/20 bg-slate-900" onchange="applyFilters()">
+                        <div class="flex items-center gap-2 text-sm text-slate-300">
+                            <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+                            도시철도 (지하철)
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-2.5 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 rounded-lg border border-slate-800/50 cursor-pointer transition">
+                        <input type="checkbox" id="filter-bus" checked class="rounded border-slate-800 text-sky-500 focus:ring-sky-500/20 bg-slate-900" onchange="applyFilters()">
+                        <div class="flex items-center gap-2 text-sm text-slate-300">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            시내/광역 버스
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 서울 5대 권역 필터 -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">서울시 5대 권역 필터</label>
+                <div class="grid grid-cols-1 gap-1" id="region-filters">
+                    <!-- 자치구 권역 선택 동적 체크박스 -->
+                </div>
+            </div>
+
+            <!-- 시뮬레이터 제어 센터 -->
+            <div class="mt-auto pt-4 border-t border-slate-800">
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                    <h3 class="text-xs font-bold text-sky-400 mb-2.5 uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="cpu" class="w-4 h-4"></i>
+                        서울 관제 시뮬레이터
+                    </h3>
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center justify-between text-xs text-slate-400">
+                            <span>실시간 변동 (3초 주기)</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="sim-active" class="sr-only peer" checked onchange="toggleSimulation()">
+                                <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5 mt-1">
+                            <button onclick="triggerRushHour()" class="py-1.5 px-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold rounded border border-amber-500/40 transition">
+                                ⚠️ 강남/여의도 출근
+                            </button>
+                            <button onclick="triggerEmergency()" class="py-1.5 px-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold rounded border border-rose-500/40 transition">
+                                🚨 지하철 지연 사고
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 가운데: 메인 캔버스 (트리맵/GIS 지도 및 요약 범례) -->
+        <section class="flex-1 flex flex-col p-4 overflow-hidden relative">
+            
+            <!-- 상단 범례 -->
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3 bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                <div class="flex items-center gap-4 text-xs">
+                    <span class="text-slate-400 font-semibold uppercase">혼잡도 범례:</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-sm bg-emerald-500/30 border border-emerald-500"></span>
+                        <span class="text-slate-400">쾌적 (&lt;35%)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-sm bg-amber-500/30 border border-amber-500"></span>
+                        <span class="text-slate-400">보통 (35~65%)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-sm bg-orange-500/30 border border-orange-500"></span>
+                        <span class="text-slate-400">혼잡 (65~85%)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-sm bg-rose-500/30 border border-rose-500"></span>
+                        <span class="text-slate-400">지연/만차 (&gt;85%)</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="active-filters-badge" class="text-[10px] bg-slate-800 text-slate-300 py-1 px-2.5 rounded border border-slate-700">서울시 통합 모니터링 중</span>
+                </div>
+            </div>
+
+            <!-- 대시보드 뷰 영역 -->
+            <div class="flex-1 bg-slate-950 rounded-xl border border-slate-800 relative overflow-hidden shadow-inner" id="heatmap-container">
+                
+                <!-- 1. 트리맵 뷰 포트 -->
+                <div id="view-treemap" class="w-full h-full absolute top-0 left-0">
+                    <div id="treemap-viewport" class="w-full h-full absolute"></div>
+                </div>
+
+                <!-- 2. GIS 지도 뷰 포트 (초기엔 hidden) -->
+                <div id="view-gis" class="w-full h-full absolute top-0 left-0 hidden">
+                    <div id="map-viewport" class="w-full h-full absolute dark-map"></div>
+                    <!-- 지도 보조 범례 Overlay -->
+                    <div class="absolute bottom-4 left-4 bg-slate-900/90 border border-slate-800 p-3 rounded-lg z-[1000] text-[11px] flex flex-col gap-1 shadow-2xl backdrop-blur">
+                        <div class="font-bold text-white mb-1">반지름 크기 = 탑승 유동량 비례</div>
+                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 쾌적 (&lt;35%)</div>
+                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 보통 (35~65%)</div>
+                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span> 혼잡 (65~85%)</div>
+                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span> 지연/만차 (&gt;85%)</div>
+                    </div>
+                </div>
+                
+                <!-- 노드 미선택/데이터 부재 안내 -->
+                <div id="no-data-msg" class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 hidden">
+                    <i data-lucide="inbox" class="w-12 h-12 text-slate-600 mb-2"></i>
+                    <p class="text-slate-400 font-medium">선택하신 조건에 부합하는 관제 대상 자치구가 없습니다.</p>
+                </div>
+            </div>
+
+            <!-- 실시간 트래픽 로그 피드 -->
+            <div class="h-20 bg-slate-900 border border-slate-800 rounded-xl mt-3 p-3 flex flex-col justify-between shrink-0 overflow-hidden">
+                <div class="flex items-center justify-between text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">
+                    <span class="flex items-center gap-1 text-sky-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+                        서울시 대중교통 돌발 및 혼잡 실시간 피드
+                    </span>
+                    <span>중앙 통제실 로그</span>
+                </div>
+                <div class="flex-1 relative overflow-hidden" id="log-feed-container">
+                    <div id="log-feed-track" class="absolute w-full flex flex-col gap-1 transition-transform duration-500">
+                        <!-- Dynamic Logs will stream here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 오른쪽: 디테일 분석 패널 -->
+        <section id="detail-panel" class="w-full lg:w-96 bg-slate-900 border-l border-slate-800 p-4 flex flex-col gap-4 overflow-y-auto lg:h-full shrink-0 transform translate-x-0 transition-transform duration-300">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h2 class="text-sm font-bold text-white flex items-center gap-1.5">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4 text-sky-400"></i>
+                    자치구별 상세 분석 리포트
+                </h2>
+                <button onclick="closeDetailPanel()" class="lg:hidden text-slate-400 hover:text-slate-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- 자치구 선택 대기 플레이스홀더 -->
+            <div id="detail-placeholder" class="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-500">
+                <i data-lucide="cursor-click" class="w-12 h-12 text-slate-700 mb-3 animate-bounce"></i>
+                <h3 class="text-sm font-medium text-slate-400">자치구 선택 대기 중</h3>
+                <p class="text-xs text-slate-500 mt-1">대시보드 히트맵 블록이나 지도의 서클 마커를 클릭하시면, 실시간 지체 구간과 혼잡 예측 추이를 로드합니다.</p>
+            </div>
+
+            <!-- 세부 정보 노출 영역 -->
+            <div id="detail-content" class="flex-1 flex flex-col gap-4 hidden">
+                <!-- 요약 카드 -->
+                <div id="detail-card-header" class="p-4 rounded-xl border">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span id="detail-badge" class="px-2 py-0.5 text-[10px] font-bold rounded">동남권 · 강남구</span>
+                        <span id="detail-trend" class="text-xs font-semibold flex items-center gap-0.5">
+                            <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> 9% 상승
+                        </span>
+                    </div>
+                    <h3 id="detail-title" class="text-base font-bold text-white">강남구 대중교통망</h3>
+                    <div class="grid grid-cols-2 gap-2 mt-3 text-center">
+                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800/80">
+                            <div class="text-[10px] text-slate-400">실시간 혼잡지수</div>
+                            <div id="detail-val-congestion" class="text-lg font-mono font-bold text-rose-400">--%</div>
+                        </div>
+                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800/80">
+                            <div class="text-[10px] text-slate-400">현재 누적 연착</div>
+                            <div id="detail-val-delay" class="text-lg font-mono font-bold text-amber-400">정시</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 실시간 구간 병목 분포 차트 -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <h4 class="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1">
+                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-sky-400"></i>
+                        구내 주요 허브별 병목 분포
+                    </h4>
+                    <div class="h-44 w-full relative">
+                        <canvas id="bottleneckChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 오늘 시간대별 혼잡 트렌드 분석 -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <h4 class="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
+                        오늘 시간대별 트래픽 추이
+                    </h4>
+                    <div class="h-28 w-full relative">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 관제 센터 지능형 가이드 -->
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 mt-auto">
+                    <h4 class="text-xs font-bold text-sky-400 mb-2 flex items-center gap-1.5">
+                        <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                        지능형 시정 권고
+                    </h4>
+                    <p id="detail-guide" class="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                        데이터 수집 대기 중입니다.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 커스텀 세팅 모달 -->
+    <div id="config-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="p-5 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-5 h-5 text-sky-400"></i>
+                    서울 트래픽 제어 패널
+                </h3>
+                <button onclick="toggleControlModal()" class="text-slate-400 hover:text-slate-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-5 flex flex-col gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">혼잡 위험 임계값 설정</label>
+                    <input type="range" min="50" max="95" value="80" id="threshold-range" class="w-full accent-sky-500">
+                    <div class="flex justify-between text-xs text-slate-500 mt-1">
+                        <span>민감(50%)</span>
+                        <span class="font-bold text-sky-400" id="threshold-val">80% 이상 경고</span>
+                        <span>둔감(95%)</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">자동 갱신 주기</label>
+                    <select id="update-interval-select" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-200">
+                        <option value="2000">2초 간격 (빠름)</option>
+                        <option value="3000" selected>3초 간격 (기본)</option>
+                        <option value="5000">5초 간격</option>
+                        <option value="10000">10초 간격</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">오디오 경고 알림</label>
+                    <label class="flex items-center gap-3 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800 cursor-pointer">
+                        <input type="checkbox" id="audio-alert" class="rounded border-slate-800 text-sky-500">
+                        <span class="text-xs text-slate-300">위험 구역 발생 시 브라우저 오디오 알림음 재생</span>
+                    </label>
+                </div>
+            </div>
+            <div class="p-5 bg-slate-950 flex justify-end gap-2 border-t border-slate-800">
+                <button onclick="toggleControlModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition">설정 반영</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast (Alert 경고음용) -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-rose-950 border-2 border-rose-500 text-rose-200 py-3 px-4 rounded-xl shadow-2xl z-[9999] flex items-center gap-3 transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none">
+        <div class="p-2 bg-rose-500/20 rounded text-rose-400">
+            <i data-lucide="bell-ring" class="w-5 h-5 animate-bounce"></i>
+        </div>
+        <div>
+            <div class="font-bold text-sm">트래픽 급증 경보</div>
+            <div id="toast-msg" class="text-xs text-rose-300 mt-0.5">강남구 테헤란로 버스 전용 차로 차량 정체 발생</div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 서울시 25개 자치구 대중교통 데이터 정의 (32개 대규모 데이터셋 원본 복원 및 위경도 맵핑)
+        // 실제 탑승객 유동량 스케일 차이를 18,000명 ~ 345,000명까지 리얼하게 유지했습니다.
+        // ==========================================
+        let transitData = [
+            // 동남권 (Southeast)
+            { id: "se-gangnam-subway", name: "강남구 도시철도 (2·3·7·9·신분당)", type: "subway", region: "southeast", value: 345000, congestion: 89, delay: 6, trend: "up", lat: 37.4979, lng: 127.0276, bottleneck: [50, 75, 90, 95, 82, 60], path: ["강남역", "역삼역", "선릉역", "삼성역", "신사역", "압구정역"] },
+            { id: "se-gangnam-bus", name: "강남구 버스정류장 트래픽", type: "bus", region: "southeast", value: 210000, congestion: 81, delay: 14, trend: "up", lat: 37.5085, lng: 127.0400, bottleneck: [40, 60, 85, 90, 70], path: ["강남역사거리", "논현역", "신사역", "코엑스앞", "학동역"] },
+            { id: "se-seocho-subway", name: "서초구 도시철도 (2·3·7·9)", type: "subway", region: "southeast", value: 185000, congestion: 76, delay: 3, trend: "stable", lat: 37.4837, lng: 127.0324, bottleneck: [45, 65, 80, 85, 70, 50], path: ["교대역", "고속터미널역", "남부터미널역", "서초역", "방배역"] },
+            { id: "se-seocho-bus", name: "서초구 중앙버스전용차로", type: "bus", region: "southeast", value: 92000, congestion: 70, delay: 11, trend: "up", lat: 37.4893, lng: 127.0100, bottleneck: [30, 55, 75, 80, 60], path: ["고속터미널", "서초IC", "반포역", "남부터미널"] },
+            { id: "se-songpa-subway", name: "송파구 도시철도 (2·8·9)", type: "subway", region: "southeast", value: 260000, congestion: 68, delay: 2, trend: "stable", lat: 37.5133, lng: 127.1001, bottleneck: [35, 50, 72, 85, 60, 45], path: ["잠실역", "종합운동장역", "석촌역", "가락시장역", "올림픽공원역"] },
+            { id: "se-songpa-bus", name: "송파구 송파대로 트래픽", type: "bus", region: "southeast", value: 78000, congestion: 51, delay: 5, trend: "down", lat: 37.5110, lng: 127.1200, bottleneck: [20, 40, 65, 60, 45], path: ["잠실광역환승센터", "석촌호수", "송파역", "장지역"] },
+            { id: "se-gangdong-subway", name: "강동구 도시철도 (5·8)", type: "subway", region: "southeast", value: 81000, congestion: 59, delay: 4, trend: "up", lat: 37.5301, lng: 127.1237, bottleneck: [30, 45, 65, 78, 55], path: ["천호역", "강동역", "고덕역", "상일동역", "길동역"] },
+            { id: "se-gangdong-bus", name: "강동구 시내버스망", type: "bus", region: "southeast", value: 34000, congestion: 41, delay: 2, trend: "stable", lat: 37.5350, lng: 127.1400, bottleneck: [20, 35, 50, 55, 40], path: ["천호사거리", "길동사거리", "강동구청", "명일동"] },
+
+            // 도심권 (Downtown)
+            { id: "dt-jongno-subway", name: "종로구 도시철도 (1·3·4·5)", type: "subway", region: "downtown", value: 165000, congestion: 72, delay: 4, trend: "stable", lat: 37.5714, lng: 126.9984, bottleneck: [40, 65, 78, 85, 65, 50], path: ["종로3가역", "광화문역", "혜화역", "동대문역", "안국역"] },
+            { id: "dt-jongno-bus", name: "종로 대로변 버스망 트래픽", type: "bus", region: "downtown", value: 89000, congestion: 74, delay: 12, trend: "up", lat: 37.5730, lng: 126.9830, bottleneck: [30, 60, 80, 85, 60], path: ["종로1가", "종로3가", "혜화동로터리", "동대문"] },
+            { id: "dt-jung-subway", name: "중구 도시철도 (1·2·4·5)", type: "subway", region: "downtown", value: 220000, congestion: 78, delay: 5, trend: "up", lat: 37.5636, lng: 126.9822, bottleneck: [45, 70, 85, 90, 70, 55], path: ["시청역", "을지로입구역", "명동역", "동대문역사문화공원역", "신당역"] },
+            { id: "dt-jung-bus", name: "중구 남산터미널 연계 버스망", type: "bus", region: "downtown", value: 76000, congestion: 65, delay: 9, trend: "stable", lat: 37.5650, lng: 126.9970, bottleneck: [25, 50, 75, 70, 55], path: ["서울역환승센터", "롯데백화점", "퇴계로", "을지로2가"] },
+            { id: "dt-yongsan-subway", name: "용산구 도시철도 (1·4·6·경의중앙)", type: "subway", region: "downtown", value: 110000, congestion: 60, delay: 5, trend: "up", lat: 37.5299, lng: 126.9647, bottleneck: [35, 50, 70, 75, 55, 40], path: ["용산역", "신용산역", "삼각지역", "이태원역", "한남역", "이촌역"] },
+            { id: "dt-yongsan-bus", name: "용산구 한강대로 버스 흐름", type: "bus", region: "downtown", value: 45000, congestion: 58, delay: 7, trend: "up", lat: 37.5310, lng: 126.9810, bottleneck: [25, 45, 72, 68, 50], path: ["용산역전면", "삼각지역", "숙대입구역", "한남대교북단"] },
+
+            // 마포/서대문/은평 서북권 (Northwest)
+            { id: "nw-mapo-subway", name: "마포구 도시철도 (2·5·6·공항철도)", type: "subway", region: "northwest", value: 205000, congestion: 82, delay: 4, trend: "up", lat: 37.5569, lng: 126.9239, bottleneck: [50, 75, 92, 88, 70, 55], path: ["홍대입구역", "신촌역", "공덕역", "합정역", "망원역", "디지털미디어시티역"] },
+            { id: "nw-mapo-bus", name: "마포구 양화로 버스 전용차로", type: "bus", region: "northwest", value: 68000, congestion: 69, delay: 8, trend: "stable", lat: 37.5500, lng: 126.9120, bottleneck: [30, 55, 80, 75, 50], path: ["홍대입구역", "합정역", "공덕역", "마포대교북단"] },
+            { id: "nw-seodaemun-subway", name: "서대문구 도시철도 (3·5)", type: "subway", region: "northwest", value: 72000, congestion: 54, delay: 2, trend: "stable", lat: 37.5791, lng: 126.9368, bottleneck: [25, 45, 62, 58, 40], path: ["신촌역(경의선)", "충정로역", "홍제역", "독립문역"] },
+            { id: "nw-seodaemun-bus", name: "서대문구 성산로 버스망", type: "bus", region: "northwest", value: 48000, congestion: 60, delay: 6, trend: "up", lat: 37.5640, lng: 126.9400, bottleneck: [20, 45, 70, 65, 45], path: ["연세대학교앞", "이대역", "서대문역", "홍은동사거리"] },
+            { id: "nw-eunpyeong-subway", name: "은평구 도시철도 (3·6)", type: "subway", region: "northwest", value: 64000, congestion: 58, delay: 3, trend: "stable", lat: 37.6010, lng: 126.9290, bottleneck: [30, 50, 70, 75, 55, 40], path: ["연신내역", "불광역", "구파발역", "응암역", "디지털미디어시티역"] },
+            { id: "nw-eunpyeong-bus", name: "은평구 통일로 중앙버스차로", type: "bus", region: "northwest", value: 18000, congestion: 48, delay: 8, trend: "up", lat: 37.6176, lng: 126.9227, bottleneck: [20, 40, 65, 60, 45], path: ["은평뉴타운", "연신내역", "불광역", "녹번역"] },
+
+            // 영등포/구로/강서 서남권 (Southwest)
+            { id: "sw-yeongdeungpo-subway", name: "영등포구 도시철도 (1·2·5·9)", type: "subway", region: "southwest", value: 245000, congestion: 86, delay: 8, trend: "up", lat: 37.5216, lng: 126.9242, bottleneck: [45, 70, 92, 95, 80, 65], path: ["여의도역", "신도림역", "영등포역", "당산역", "여의나루역", "영등포구청역"] },
+            { id: "sw-yeongdeungpo-bus", name: "영등포/여의도 환승센터 버스망", type: "bus", region: "southwest", value: 125000, congestion: 80, delay: 15, trend: "up", lat: 37.5255, lng: 126.9215, bottleneck: [35, 65, 90, 85, 60], path: ["여의도환승센터", "영등포역", "당산역", "국회의사당역"] },
+            { id: "sw-guro-subway", name: "구로구 도시철도 (1·2·7)", type: "subway", region: "southwest", value: 140000, congestion: 83, delay: 7, trend: "up", lat: 37.4954, lng: 126.8874, bottleneck: [50, 80, 95, 92, 75, 60], path: ["신도림역", "구로역", "가산디지털단지역", "대림역", "온수역"] },
+            { id: "sw-guro-bus", name: "구로구 경인로 버스 교통", type: "bus", region: "southwest", value: 41000, congestion: 65, delay: 10, trend: "stable", lat: 37.4940, lng: 126.8560, bottleneck: [30, 55, 82, 80, 55], path: ["신도림역", "구로역", "개봉사거리", "오류동역"] },
+            { id: "sw-gangseo-subway", name: "강서구 도시철도 (5·9·공항철도)", type: "subway", region: "southwest", value: 115000, congestion: 76, delay: 9, trend: "up", lat: 37.5509, lng: 126.8497, bottleneck: [40, 65, 88, 92, 75, 55], path: ["김포공항역", "마곡나루역", "가양역", "발산역", "화곡역", "등촌역"] },
+            { id: "sw-gwanak-subway", name: "관악구 도시철도 (2·신림선)", type: "subway", region: "southwest", value: 195000, congestion: 85, delay: 5, trend: "up", lat: 37.4843, lng: 126.9297, bottleneck: [55, 80, 94, 96, 75, 55], path: ["신림역", "서울대입구역", "낙성대역", "봉천역", "서원역"] },
+            { id: "sw-yangcheon-subway", name: "양천구 도시철도 (2·5)", type: "subway", region: "southwest", value: 45000, congestion: 45, delay: 1, trend: "down", lat: 37.5270, lng: 126.8560, bottleneck: [20, 40, 55, 62, 45], path: ["목동역", "오목교역", "신정네거리역", "신정역"] },
+
+            // 동북권 (Northeast)
+            { id: "ne-seongdong-subway", name: "성동구 도시철도 (2·5·수인분당)", type: "subway", region: "northeast", value: 92000, congestion: 63, delay: 3, trend: "stable", lat: 37.5614, lng: 127.0371, bottleneck: [35, 55, 75, 72, 60, 45], path: ["왕십리역", "성수역", "옥수역", "금호역", "한양대역"] },
+            { id: "ne-seongdong-bus", name: "성동구 성수동 로컬 버스 트래픽", type: "bus", region: "northeast", value: 26000, congestion: 52, delay: 5, trend: "up", lat: 37.5410, lng: 127.0560, bottleneck: [20, 45, 68, 70, 50], path: ["왕십리역", "성수역", "뚝섬역", "서울숲"] },
+            { id: "ne-nowon-subway", name: "노원구 도시철도 (4·7)", type: "subway", region: "northeast", value: 135000, congestion: 65, delay: 4, trend: "stable", lat: 37.6542, lng: 127.0568, bottleneck: [40, 60, 78, 82, 65, 50], path: ["노원역", "창동역", "태릉입구역", "석계역", "하계역", "상계역"] },
+            { id: "ne-nowon-bus", name: "노원구 동일로 버스 정체 지표", type: "bus", region: "northeast", value: 31000, congestion: 49, delay: 6, trend: "stable", lat: 37.6400, lng: 127.0700, bottleneck: [20, 40, 60, 65, 50], path: ["노원역", "중계역", "하계역", "공릉역"] },
+            { id: "ne-gwangjin-subway", name: "광진구 도시철도 (2·5·7)", type: "subway", region: "northeast", value: 105000, congestion: 61, delay: 2, trend: "stable", lat: 37.5385, lng: 127.0709, bottleneck: [30, 50, 72, 75, 58, 40], path: ["건대입구역", "구의역", "강변역", "군자역", "광나루역"] },
+            { id: "ne-dongdaemun-subway", name: "동대문구 도시철도 (1·2·5)", type: "subway", region: "northeast", value: 78000, congestion: 53, delay: 3, trend: "down", lat: 37.5744, lng: 127.0397, bottleneck: [25, 45, 60, 65, 50], path: ["청량리역", "제기동역", "신설동역", "장한평역", "회기역"] }
+        ];
+
+        // 서울시 5대 권역 한글명 정의
+        const regions = {
+            "downtown": "도심권 (종로·중구·용산)",
+            "southeast": "동남권 (강남·서초·송파·강동)",
+            "southwest": "서남권 (영등포·구로·관악·강서·양천)",
+            "northwest": "서북권 (마포·서대문·은평)",
+            "northeast": "동북권 (성동·노원·광진·동대문)"
+        };
+
+        // 전역 상태 변수
+        let currentViewMode = "treemap"; // "treemap" 또는 "gis"
+        let activeWeight = "volume"; // 'volume' 또는 'congestion'
+        let selectedNodeId = null;
+        let simulationInterval = null;
+        let isSimActive = true;
+        let searchKeyword = "";
+        let bottleneckChartObj = null;
+        let trendChartObj = null;
+
+        // Leaflet GIS 지도 인스턴스 저장소
+        let mapObj = null;
+        let mapMarkers = [];
+
+        // 경고 임계값 및 음향 사용 여부
+        let warningThreshold = 80;
+        let isAudioAlertEnabled = false;
+
+        // ==========================================
+        // 2. 초기 기동 함수
+        // ==========================================
+        window.onload = function() {
+            lucide.createIcons();
+            
+            // 실시간 날짜 & 시간
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+
+            // Leaflet GIS 지도 인스턴스 선행 생성
+            initGisMap();
+
+            // 필터 UI 구축
+            buildRegionFilterUI();
+
+            // 필터 기본 작동 및 그리기
+            applyFilters();
+
+            // 시뮬레이션 기본 실행
+            startSimulation();
+
+            // 반응형 리사이즈 대응
+            window.addEventListener('resize', () => {
+                if (currentViewMode === 'treemap') {
+                    renderTreemap();
+                }
+            });
+
+            // 검색 인풋 키보드 이벤트
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                searchKeyword = e.target.value.toLowerCase().trim();
+                applyFilters();
+            });
+
+            // 설정 모달 변화 체크 이벤트
+            document.getElementById('threshold-range').addEventListener('input', (e) => {
+                warningThreshold = parseInt(e.target.value);
+                document.getElementById('threshold-val').innerText = `${warningThreshold}% 이상 경고`;
+                if (currentViewMode === 'treemap') {
+                    renderTreemap();
+                } else {
+                    renderGisMarkers();
+                }
+            });
+            
+            document.getElementById('audio-alert').addEventListener('change', (e) => {
+                isAudioAlertEnabled = e.target.checked;
+            });
+
+            document.getElementById('update-interval-select').addEventListener('change', (e) => {
+                if (isSimActive) {
+                    stopSimulation();
+                    startSimulation();
+                }
+            });
+        }
+
+        // GIS 지도 레이어 생성
+        function initGisMap() {
+            // 서울 한가운데 배치
+            mapObj = L.map('map-viewport', { zoomControl: false }).setView([37.5502, 126.982], 11);
+            
+            // 부드러운 다크-백그라운드형 지도 소스 연동
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', {
+                maxZoom: 18,
+                attribution: '© OpenStreetMap'
+            }).addTo(mapObj);
+        }
+
+        // 시간 표시 갱신
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
+            const timeStr = now.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' KST';
+            
+            document.getElementById('current-date').innerText = dateStr;
+            document.getElementById('current-time').innerText = timeStr;
+        }
+
+        // ==========================================
+        // 3. 필터 관리 및 처리
+        // ==========================================
+        function buildRegionFilterUI() {
+            const container = document.getElementById('region-filters');
+            container.innerHTML = "";
+            
+            // 전체 선택 체크박스 추가
+            const allLabel = document.createElement('label');
+            allLabel.className = "flex items-center gap-2 px-2.5 py-1.5 bg-slate-950/60 hover:bg-slate-950 rounded-lg border border-slate-800 cursor-pointer transition mb-1";
+            allLabel.innerHTML = `
+                <input type="checkbox" id="region-all" checked class="rounded border-slate-800 text-sky-500 focus:ring-sky-500/20 bg-slate-900" onchange="toggleAllRegions(this)">
+                <span class="text-xs font-semibold text-slate-300">서울 전역 선택</span>
+            `;
+            container.appendChild(allLabel);
+
+            // 각 지역별 체크박스 생성
+            Object.keys(regions).forEach(key => {
+                const label = document.createElement('label');
+                label.className = "flex items-center gap-2 px-2.5 py-1.5 bg-slate-950/20 hover:bg-slate-950 rounded border border-slate-800/50 cursor-pointer transition";
+                label.innerHTML = `
+                    <input type="checkbox" name="region-item" value="${key}" checked class="rounded border-slate-800 text-sky-500 focus:ring-sky-500/20 bg-slate-900" onchange="checkRegionAllState()">
+                    <span class="text-xs text-slate-300">${regions[key]}</span>
+                `;
+                container.appendChild(label);
+            });
+        }
+
+        function toggleAllRegions(masterCheckbox) {
+            const items = document.getElementsByName('region-item');
+            items.forEach(cb => {
+                cb.checked = masterCheckbox.checked;
+            });
+            applyFilters();
+        }
+
+        function checkRegionAllState() {
+            const master = document.getElementById('region-all');
+            const items = document.getElementsByName('region-item');
+            const checkedCount = Array.from(items).filter(cb => cb.checked).length;
+            
+            master.checked = checkedCount === items.length;
+            applyFilters();
+        }
+
+        let filteredData = [];
+
+        function applyFilters() {
+            const showSubway = document.getElementById('filter-subway').checked;
+            const showBus = document.getElementById('filter-bus').checked;
+            
+            const checkedRegions = Array.from(document.getElementsByName('region-item'))
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            filteredData = transitData.filter(item => {
+                if (item.type === 'subway' && !showSubway) return false;
+                if (item.type === 'bus' && !showBus) return false;
+                if (!checkedRegions.includes(item.region)) return false;
+
+                if (searchKeyword) {
+                    const matchName = item.name.toLowerCase().includes(searchKeyword);
+                    const matchRegion = regions[item.region].toLowerCase().includes(searchKeyword);
+                    if (!matchName && !matchRegion) return false;
+                }
+
+                return true;
+            });
+
+            const badge = document.getElementById('active-filters-badge');
+            const regionCount = checkedRegions.length;
+            let text = "";
+            if (regionCount === Object.keys(regions).length) {
+                text = "서울시 전역 관제 중";
+            } else {
+                text = `${regionCount}개 권역 집중 관제 중`;
+            }
+            if (!showSubway || !showBus) {
+                text += ` (${!showSubway ? '버스만' : '지하철만'})`;
+            }
+            badge.innerText = text;
+
+            updateStatsSummary();
+
+            if (currentViewMode === 'treemap') {
+                renderTreemap();
+            } else {
+                renderGisMarkers();
+            }
+        }
+
+        function changeWeightBasis(basis) {
+            activeWeight = basis;
+            const btnVol = document.getElementById('btn-weight-volume');
+            const btnCong = document.getElementById('btn-weight-congestion');
+
+            if (basis === 'volume') {
+                btnVol.className = "px-2 py-1.5 text-xs font-semibold rounded transition bg-slate-800 text-sky-400 shadow";
+                btnCong.className = "px-2 py-1.5 text-xs font-medium rounded transition text-slate-400 hover:text-slate-200";
+            } else {
+                btnCong.className = "px-2 py-1.5 text-xs font-semibold rounded transition bg-slate-800 text-sky-400 shadow";
+                btnVol.className = "px-2 py-1.5 text-xs font-medium rounded transition text-slate-400 hover:text-slate-200";
+            }
+
+            if (currentViewMode === 'treemap') {
+                renderTreemap();
+            } else {
+                renderGisMarkers();
+            }
+        }
+
+        // ==========================================
+        // 4. 뷰 전환 모드 액션
+        // ==========================================
+        function switchViewMode(mode) {
+            currentViewMode = mode;
+            const tabTreemap = document.getElementById('tab-treemap');
+            const tabGis = document.getElementById('tab-gis');
+            const viewTreemap = document.getElementById('view-treemap');
+            const viewGis = document.getElementById('view-gis');
+
+            if (mode === 'treemap') {
+                tabTreemap.className = "flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition bg-slate-800 text-sky-400 shadow";
+                tabGis.className = "flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition text-slate-400 hover:text-slate-200";
+                viewTreemap.classList.remove('hidden');
+                viewGis.classList.add('hidden');
+                renderTreemap();
+            } else {
+                tabGis.className = "flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition bg-slate-800 text-sky-400 shadow";
+                tabTreemap.className = "flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition text-slate-400 hover:text-slate-200";
+                viewGis.classList.remove('hidden');
+                viewTreemap.classList.add('hidden');
+                
+                // 숨겨진 컨테이너에서 Leaflet 로딩 시 렌더링 오차 방지
+                setTimeout(() => {
+                    mapObj.invalidateSize();
+                    renderGisMarkers();
+                }, 50);
+            }
+        }
+
+        // ==========================================
+        // 5. 통계 요약
+        // ==========================================
+        function updateStatsSummary() {
+            const total = transitData.length;
+            const normal = transitData.filter(d => d.congestion < 65).length;
+            const warnings = transitData.filter(d => d.congestion >= 65 && d.congestion < warningThreshold).length;
+            const criticals = transitData.filter(d => d.congestion >= warningThreshold).length;
+
+            const normalEl = document.getElementById('stat-normal');
+            const delayEl = document.getElementById('stat-delay');
+            const criticalEl = document.getElementById('stat-critical');
+
+            if (normalEl) normalEl.innerText = `${normal} / ${total}`;
+            if (delayEl) delayEl.innerText = `${warnings} 개소`;
+            if (criticalEl) criticalEl.innerText = `${criticals} 개소`;
+        }
+
+        // ==========================================
+        // 6. 트리맵 분할 알고리즘 (Recursive Binary Split)
+        // ==========================================
+        function renderTreemap() {
+            const container = document.getElementById('treemap-viewport');
+            container.innerHTML = "";
+
+            if (filteredData.length === 0) {
+                document.getElementById('no-data-msg').classList.remove('hidden');
+                return;
+            } else {
+                document.getElementById('no-data-msg').classList.add('hidden');
+            }
+
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+
+            let nodes = filteredData.map(d => {
+                let weight = activeWeight === 'volume' ? d.value : d.congestion;
+                if (weight <= 0) weight = 1;
+                return { ...d, _weight: weight };
+            });
+
+            nodes.sort((a, b) => b._weight - a._weight);
+            divideNodes(nodes, 0, 0, w, h);
+
+            nodes.forEach(node => {
+                const rect = document.createElement('div');
+                rect.className = "absolute p-1 transition-all duration-500 ease-out";
+                rect.style.left = `${node._x}px`;
+                rect.style.top = `${node._y}px`;
+                rect.style.width = `${node._w}px`;
+                rect.style.height = `${node._h}px`;
+
+                let colorClasses = "";
+                let indicatorColor = "";
+                if (node.congestion < 35) {
+                    colorClasses = "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/60 hover:border-emerald-500 text-emerald-300";
+                    indicatorColor = "bg-emerald-400";
+                } else if (node.congestion >= 35 && node.congestion < 65) {
+                    colorClasses = "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/60 hover:border-amber-500 text-amber-300";
+                    indicatorColor = "bg-amber-400";
+                } else if (node.congestion >= 65 && node.congestion < warningThreshold) {
+                    colorClasses = "bg-orange-500/15 hover:bg-orange-500/25 border-orange-500/60 hover:border-orange-500 text-orange-300";
+                    indicatorColor = "bg-orange-400";
+                } else {
+                    colorClasses = "bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/80 hover:border-rose-500 text-rose-300 ring-1 ring-rose-500/30";
+                    indicatorColor = "bg-rose-400";
+                }
+
+                const isSelected = selectedNodeId === node.id;
+                const selectRing = isSelected ? 'ring-2 ring-sky-400 scale-[0.99] z-10' : '';
+
+                const isLarge = node._w > 135 && node._h > 90;
+                const isMedium = node._w > 75 && node._h > 55;
+
+                let contentHtml = "";
+                const shortRegionName = regions[node.region].split(" ")[0];
+
+                if (isLarge) {
+                    contentHtml = `
+                        <div class="h-full flex flex-col justify-between p-2 rounded-lg border backdrop-blur-sm cursor-pointer select-none transition-all ${colorClasses} ${selectRing}" onclick="selectNode('${node.id}')">
+                            <div class="flex items-start justify-between gap-1">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] opacity-75 font-semibold flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full ${indicatorColor}"></span>
+                                        ${shortRegionName} · ${node.type === 'subway' ? '도시철도' : '시내버스'}
+                                    </span>
+                                    <h4 class="text-xs font-bold text-white mt-1 leading-tight truncate max-w-[150px]">${node.name}</h4>
+                                </div>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-950/60 border border-slate-800">
+                                    ${node.trend === 'up' ? '▲' : node.trend === 'down' ? '▼' : '─'}
+                                </span>
+                            </div>
+                            <div class="flex items-end justify-between mt-2">
+                                <div class="text-left">
+                                    <span class="text-[9px] opacity-60 block">탑승지표</span>
+                                    <span class="text-xs font-mono font-bold">${node.value.toLocaleString()}명</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[9px] opacity-60 block">혼잡도</span>
+                                    <span class="text-sm font-mono font-bold">${node.congestion}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (isMedium) {
+                    contentHtml = `
+                        <div class="h-full flex flex-col justify-between p-1.5 rounded-lg border backdrop-blur-sm cursor-pointer select-none transition-all ${colorClasses} ${selectRing}" onclick="selectNode('${node.id}')" title="${node.name}">
+                            <div class="truncate text-[10px] font-bold text-white">${node.name}</div>
+                            <div class="flex justify-between items-end">
+                                <span class="text-[9px] font-mono opacity-80">${node.congestion}%</span>
+                                ${node.delay > 0 ? `<span class="text-[9px] font-mono font-semibold text-rose-300">+${node.delay}분</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    contentHtml = `
+                        <div class="h-full rounded-md border backdrop-blur-sm cursor-pointer transition-all ${colorClasses} ${selectRing}" onclick="selectNode('${node.id}')" title="${node.name} (${node.congestion}%)">
+                            <div class="w-full h-full flex items-center justify-center text-[8px] font-mono font-bold text-white/90">
+                                ${node.congestion}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                rect.innerHTML = contentHtml;
+                container.appendChild(rect);
+            });
+        }
+
+        function divideNodes(nodes, x, y, w, h) {
+            if (nodes.length === 0) return;
+            if (nodes.length === 1) {
+                nodes[0]._x = x;
+                nodes[0]._y = y;
+                nodes[0]._w = Math.max(0, w);
+                nodes[0]._h = Math.max(0, h);
+                return;
+            }
+
+            const totalWeight = nodes.reduce((sum, n) => sum + n._weight, 0);
+            let halfWeight = totalWeight / 2;
+            let currentSum = 0;
+            let splitIndex = 1;
+
+            for (let i = 0; i < nodes.length; i++) {
+                currentSum += nodes[i]._weight;
+                if (currentSum >= halfWeight) {
+                    splitIndex = Math.max(1, i);
+                    break;
+                }
+            }
+
+            const leftGroup = nodes.slice(0, splitIndex);
+            const rightGroup = nodes.slice(splitIndex);
+            const leftWeight = leftGroup.reduce((sum, n) => sum + n._weight, 0);
+
+            if (w > h) {
+                const leftWidth = (leftWeight / totalWeight) * w;
+                divideNodes(leftGroup, x, y, leftWidth, h);
+                divideNodes(rightGroup, x + leftWidth, y, w - leftWidth, h);
+            } else {
+                const leftHeight = (leftWeight / totalWeight) * h;
+                divideNodes(leftGroup, x, y, w, leftHeight);
+                divideNodes(rightGroup, x, y + leftHeight, w, h - leftHeight);
+            }
+        }
+
+        // ==========================================
+        // 7. GIS 지도 뷰 마커 그리기 및 실제 스케일링 반영
+        // ==========================================
+        function renderGisMarkers() {
+            // 기존 등록 마커 제거
+            mapMarkers.forEach(m => mapObj.removeLayer(m));
+            mapMarkers = [];
+
+            if (filteredData.length === 0) {
+                document.getElementById('no-data-msg').classList.remove('hidden');
+                return;
+            } else {
+                document.getElementById('no-data-msg').classList.add('hidden');
+            }
+
+            filteredData.forEach(node => {
+                let color = "#10b981"; // emerald
+                if (node.congestion >= warningThreshold) {
+                    color = "#f43f5e"; // rose
+                } else if (node.congestion >= 65) {
+                    color = "#f97316"; // orange
+                } else if (node.congestion >= 35) {
+                    color = "#f59e0b"; // amber
+                }
+
+                // 가중치에 따른 서클 마커 반지름 크기 설정 (실제 25개 자치구의 탑승객 볼륨 편차를 시각적으로 정밀하게 표현)
+                let baseRadius = activeWeight === 'volume' ? Math.sqrt(node.value) * 1.6 : node.congestion * 5.5;
+                let finalRadius = Math.max(6, baseRadius / 25);
+
+                let marker = L.circleMarker([node.lat, node.lng], {
+                    radius: finalRadius,
+                    fillColor: color,
+                    color: color,
+                    weight: 2,
+                    fillOpacity: 0.55
+                }).addTo(mapObj);
+
+                // 간이 툴팁 바인딩
+                marker.bindTooltip(`
+                    <div class="text-xs p-1 bg-slate-900 text-slate-100 rounded border border-slate-700">
+                        <strong class="block text-sky-400">${node.name}</strong>
+                        <span>혼잡지수: <strong>${node.congestion}%</strong></span><br>
+                        <span>탑승객: ${node.value.toLocaleString()}명</span>
+                    </div>
+                `, { direction: 'top', className: 'custom-leaflet-tooltip' });
+
+                marker.on('click', () => {
+                    selectNode(node.id);
+                });
+
+                mapMarkers.push(marker);
+            });
+        }
+
+        // ==========================================
+        // 8. 노선 선택 및 상세 패널 분석 그래프 드로잉
+        // ==========================================
+        function selectNode(id) {
+            selectedNodeId = id;
+            
+            if (currentViewMode === 'treemap') {
+                renderTreemap();
+            } else {
+                // GIS 모드에서는 선택한 노드의 마커 위치로 맵 뷰 초점 부드럽게 이동
+                const nodeMarker = transitData.find(d => d.id === id);
+                if (nodeMarker) {
+                    mapObj.panTo([nodeMarker.lat, nodeMarker.lng]);
+                }
+            }
+
+            const node = transitData.find(d => d.id === id);
+            if (!node) return;
+
+            document.getElementById('detail-placeholder').classList.add('hidden');
+            document.getElementById('detail-content').classList.remove('hidden');
+
+            const badge = document.getElementById('detail-badge');
+            badge.innerText = `${regions[node.region]} · ${node.type === 'subway' ? '지하철' : '버스'}`;
+            if (node.type === 'subway') {
+                badge.className = "px-2 py-0.5 text-[10px] font-bold rounded bg-sky-500/20 text-sky-400 border border-sky-500/30";
+            } else {
+                badge.className = "px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+            }
+
+            document.getElementById('detail-title').innerText = node.name;
+            
+            const congText = document.getElementById('detail-val-congestion');
+            congText.innerText = `${node.congestion}%`;
+            if (node.congestion < 35) congText.className = "text-lg font-mono font-bold text-emerald-400";
+            else if (node.congestion < 65) congText.className = "text-lg font-mono font-bold text-amber-400";
+            else if (node.congestion < warningThreshold) congText.className = "text-lg font-mono font-bold text-orange-400";
+            else congText.className = "text-lg font-mono font-bold text-rose-500";
+
+            document.getElementById('detail-val-delay').innerText = node.delay > 0 ? `+${node.delay}분` : '정시';
+            document.getElementById('detail-val-delay').className = node.delay > 5 ? "text-lg font-mono font-bold text-rose-400" : "text-lg font-mono font-bold text-slate-300";
+
+            const trendEl = document.getElementById('detail-trend');
+            if (node.trend === 'up') {
+                trendEl.innerHTML = `<i data-lucide="trending-up" class="w-3.5 h-3.5"></i> 지속 상승`;
+                trendEl.className = "text-xs font-semibold flex items-center gap-0.5 text-rose-400";
+            } else if (node.trend === 'down') {
+                trendEl.innerHTML = `<i data-lucide="trending-down" class="w-3.5 h-3.5"></i> 완화 중`;
+                trendEl.className = "text-xs font-semibold flex items-center gap-0.5 text-emerald-400";
+            } else {
+                trendEl.innerHTML = `<i data-lucide="minus" class="w-3.5 h-3.5"></i> 상태 유지`;
+                trendEl.className = "text-xs font-semibold flex items-center gap-0.5 text-slate-400";
+            }
+
+            let guideText = "";
+            if (node.congestion >= warningThreshold) {
+                guideText = `[위험 경보] ${node.name}의 혼잡도가 극심 단계(${node.congestion}%)에 도달하여 대기 승객이 집중되고 있습니다. `;
+                if (node.delay > 0) {
+                    guideText += `인접 환승통로 지체가 위험 수위이므로 배차 긴급 단축 조치가 권장됩니다.`;
+                } else {
+                    guideText += `인접 교통 수단으로 탑승 우회 가이드를 실시간 발령하십시오.`;
+                }
+            } else if (node.congestion >= 65) {
+                guideText = `[주의 관리] 해당 거점의 유입 정체가 심화 양상입니다. 버스 전용 차로 흐름을 주기적으로 모니터링하십시오.`;
+            } else {
+                guideText = `[정상 운영] 서울시 평균 트래픽 분산 범주 내에 속해 있어 안정적인 통행이 준수되고 있습니다.`;
+            }
+            document.getElementById('detail-guide').innerText = guideText;
+
+            lucide.createIcons();
+
+            drawBottleneckChart(node);
+            drawTrendChart(node);
+        }
+
+        // 구간별 병목 분포 차트 (Bar Chart)
+        function drawBottleneckChart(node) {
+            const ctx = document.getElementById('bottleneckChart').getContext('2d');
+            
+            if (bottleneckChartObj) {
+                bottleneckChartObj.destroy();
+            }
+
+            const labels = node.path || ["지점 1", "지점 2", "지점 3", "지점 4", "지점 5"];
+            const data = node.bottleneck || [40, 50, 60, 40, 30];
+
+            const getColors = (vals) => {
+                return vals.map(v => {
+                    if (v < 35) return 'rgba(16, 185, 129, 0.6)';
+                    if (v < 65) return 'rgba(245, 158, 11, 0.6)';
+                    if (v < warningThreshold) return 'rgba(249, 115, 22, 0.6)';
+                    return 'rgba(244, 63, 94, 0.8)';
+                });
+            };
+
+            bottleneckChartObj = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: getColors(data),
+                        borderColor: getColors(data).map(c => c.replace('0.6', '1.0')),
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            min: 0, max: 100,
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#94a3b8', font: { size: 9 }, callback: function(v) { return v + '%'; } }
+                        },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 8 } } }
+                    }
+                }
+            });
+        }
+
+        // 하루 시간대별 혼잡 트렌드 예측 차트 (Line Chart)
+        function drawTrendChart(node) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+
+            if (trendChartObj) {
+                trendChartObj.destroy();
+            }
+
+            const hours = ["07시", "09시", "12시", "15시", "18시", "21시"];
+            let baseVal = node.congestion;
+            let trendData = [];
+            
+            if (node.id.includes('gangnam') || node.id.includes('yeongdeungpo') || node.id.includes('jung')) {
+                trendData = [75, 95, 55, baseVal, 92, 65];
+            } else {
+                trendData = [85, 70, 45, baseVal, 80, 55];
+            }
+
+            trendData[3] = baseVal;
+
+            trendChartObj = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        data: trendData,
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#38bdf8'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            min: 0, max: 100,
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#64748b', font: { size: 8 }, callback: function(v) { return v + '%'; } }
+                        },
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 8 } } }
+                    }
+                }
+            });
+        }
+
+        function closeDetailPanel() {
+            const panel = document.getElementById('detail-panel');
+            panel.classList.add('translate-x-full');
+            selectedNodeId = null;
+            if (currentViewMode === 'treemap') renderTreemap();
+        }
+
+        // ==========================================
+        // 9. 실시간 데이터 요동 시뮬레이션
+        // ==========================================
+        function startSimulation() {
+            const intervalVal = parseInt(document.getElementById('update-interval-select').value);
+            simulationInterval = setInterval(() => {
+                simulateDataFluctuations();
+            }, intervalVal);
+        }
+
+        function stopSimulation() {
+            clearInterval(simulationInterval);
+        }
+
+        function toggleSimulation() {
+            isSimActive = document.getElementById('sim-active').checked;
+            if (isSimActive) {
+                startSimulation();
+                addLogFeed("서울시 실시간 교통 자동 센서 데이터 연동이 재개되었습니다.");
+            } else {
+                stopSimulation();
+                addLogFeed("실시간 자동 데이터 갱신이 중단되었습니다.");
+            }
+        }
+
+        function simulateDataFluctuations() {
+            const numChanges = 3;
+            for (let i = 0; i < numChanges; i++) {
+                const randIdx = Math.floor(Math.random() * transitData.length);
+                const node = transitData[randIdx];
+
+                const change = Math.floor(Math.random() * 21) - 10;
+                let newCong = node.congestion + change;
+                newCong = Math.max(10, Math.min(100, newCong));
+
+                let delayChange = Math.floor(Math.random() * 3) - 1;
+                let newDelay = Math.max(0, node.delay + delayChange);
+
+                const oldCong = node.congestion;
+                node.congestion = newCong;
+                node.delay = newDelay;
+                node.trend = change > 2 ? 'up' : change < -2 ? 'down' : 'stable';
+
+                if (node.bottleneck) {
+                    node.bottleneck = node.bottleneck.map(v => Math.max(10, Math.min(100, v + (Math.floor(Math.random() * 11) - 5))));
+                }
+
+                if (Math.abs(change) > 6) {
+                    const direction = change > 0 ? "급증" : "해소";
+                    const districtName = node.name.split(" ")[0];
+                    addLogFeed(`${districtName} 트래픽 임팩트 발생: 밀집도 ${direction} (${oldCong}% ➔ ${newCong}%)`);
+                    
+                    if (newCong >= warningThreshold && oldCong < warningThreshold) {
+                        triggerToastNotification(`${node.name} 혼잡 지수 가열 경고! (${newCong}% 돌파)`);
+                    }
+                }
+            }
+
+            updateStatsSummary();
+            
+            if (currentViewMode === 'treemap') {
+                renderTreemap();
+            } else {
+                renderGisMarkers();
+            }
+
+            if (selectedNodeId) {
+                const activeNode = transitData.find(d => d.id === selectedNodeId);
+                if (activeNode) {
+                    document.getElementById('detail-val-congestion').innerText = `${activeNode.congestion}%`;
+                    document.getElementById('detail-val-delay').innerText = activeNode.delay > 0 ? `+${activeNode.delay}분` : '정시';
+                    if (bottleneckChartObj) {
+                        bottleneckChartObj.data.datasets[0].data = activeNode.bottleneck;
+                        bottleneckChartObj.update();
+                    }
+                    if (trendChartObj) {
+                        trendChartObj.update();
+                    }
+                }
+            }
+        }
+
+        // 출근 러쉬아워 데이터 가중
+        function triggerRushHour() {
+            transitData.forEach(node => {
+                let isTargetGu = node.id.includes('gangnam') || node.id.includes('seocho') || node.id.includes('yeongdeungpo');
+                let bump = isTargetGu ? (Math.floor(Math.random() * 15) + 25) : (Math.floor(Math.random() * 10) + 10);
+                
+                node.congestion = Math.min(100, node.congestion + bump);
+                node.delay = Math.max(node.delay, isTargetGu ? Math.floor(Math.random() * 12) + 8 : Math.floor(Math.random() * 4));
+                node.trend = "up";
+                
+                if (node.bottleneck) {
+                    node.bottleneck = node.bottleneck.map(v => Math.min(100, v + bump));
+                }
+            });
+
+            addLogFeed("🚨 [시뮬레이션 발령] 서울 주요 오피스 권역 일제히 러시 정체 동기화 가중되었습니다.");
+            triggerToastNotification("테헤란로 및 여의도 진입 링크 일괄 지연 경보 작동");
+            applyFilters();
+        }
+
+        // 긴급 연착 사고
+        function triggerEmergency() {
+            const index = Math.floor(Math.random() * transitData.length);
+            const target = transitData[index];
+
+            target.congestion = 98;
+            target.delay = 28;
+            target.trend = "up";
+            if (target.bottleneck) {
+                target.bottleneck = target.bottleneck.map(() => 95);
+            }
+
+            addLogFeed("🔥 [관제 속보] " + target.name + " 구간 설비 이상 연착 장애 수집 완료 (+28분 연차 통지)");
+            triggerToastNotification("속보: " + target.name + " 긴급 서행 복구 관리 조치");
+            applyFilters();
+
+            selectNode(target.id);
+        }
+
+        // ==========================================
+        // 10. 피드백 UI 함수 (로그, 토스트, 모달)
+        // ==========================================
+        function addLogFeed(message) {
+            const container = document.getElementById('log-feed-track');
+            const timeStr = new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            const logItem = document.createElement('div');
+            logItem.className = "text-xs flex items-center gap-2 py-0.5 border-b border-slate-900 text-slate-300 font-mono";
+            logItem.innerHTML = `
+                <span class="text-sky-500 font-bold shrink-0">[${timeStr}]</span>
+                <span class="truncate">${message}</span>
+            `;
+
+            container.insertBefore(logItem, container.firstChild);
+
+            if (container.children.length > 25) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        function triggerToastNotification(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+
+            if (isAudioAlertEnabled) {
+                playWarningBeep();
+            }
+
+            toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+            }, 4500);
+        }
+
+        function playWarningBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 880;
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+            } catch (e) {
+                console.log("오디오를 지원하지 않는 브라우저입니다.");
+            }
+        }
+
+        function toggleControlModal() {
+            const modal = document.getElementById('config-modal');
+            modal.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
